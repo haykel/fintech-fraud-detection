@@ -46,3 +46,23 @@ curl http://localhost:9000  # MinIO
 ## Prochains pas
 
 Voir la [Roadmap](https://confluenceurl) pour les phases suivantes.
+
+## Database Setup
+
+### Initialize PostgreSQL
+
+```bash
+# Les tables se créent automatiquement via SQLAlchemy
+# Mais tu peux aussi utiliser Alembic pour les migrations
+
+# Setup initial
+python -c "from infrastructure.postgres.repositories import init_db; import asyncio; asyncio.run(init_db())"
+```
+
+### Créer un test account
+
+```bash
+# Via psql
+psql -h localhost -U postgres -d fintech_db -c \
+  "INSERT INTO accounts (id, holder_name, email, status) VALUES ('acc-test-1', 'Test User', 'test@example.com', 'ACTIVE');"
+```

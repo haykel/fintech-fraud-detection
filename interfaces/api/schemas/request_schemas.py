@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import Optional, Dict, Any
 from decimal import Decimal
 
@@ -14,21 +14,23 @@ class ProcessTransactionRequest(BaseModel):
     merchant_name: Optional[str] = Field(None, description="Nom du commerçant")
     merchant_category: Optional[str] = Field(None, description="Catégorie du commerçant")
     merchant_country: Optional[str] = Field(None, description="Code pays du commerçant")
-    
-    @validator('currency')
+
+    @field_validator('currency')
+    @classmethod
     def currency_must_be_3_chars(cls, v):
         if len(v) != 3:
             raise ValueError('Currency must be a 3-letter ISO 4217 code')
         return v.upper()
-    
-    @validator('amount')
+
+    @field_validator('amount')
+    @classmethod
     def amount_must_be_positive(cls, v):
         if v <= 0:
             raise ValueError('Amount must be positive')
         return v
-    
-    class Config:
-        schema_extra = {
+
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "account_id": "acc-123",
                 "amount": 150.50,
@@ -39,6 +41,7 @@ class ProcessTransactionRequest(BaseModel):
                 "merchant_country": "FR",
             }
         }
+    )
 
 
 class GetTransactionHistoryRequest(BaseModel):
@@ -51,9 +54,9 @@ class GetTransactionHistoryRequest(BaseModel):
     is_fraud: Optional[bool] = Field(None)
     start_date: Optional[str] = Field(None, description="ISO 8601 format")
     end_date: Optional[str] = Field(None, description="ISO 8601 format")
-    
-    class Config:
-        schema_extra = {
+
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "limit": 50,
                 "offset": 0,
@@ -63,3 +66,4 @@ class GetTransactionHistoryRequest(BaseModel):
                 "is_fraud": False,
             }
         }
+    )
