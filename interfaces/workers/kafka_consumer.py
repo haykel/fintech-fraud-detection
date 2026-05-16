@@ -17,7 +17,7 @@ class KafkaConsumerWorker:
     
     def __init__(
         self,
-        bootstrap_servers: str = "localhost:9092",
+        bootstrap_servers: str = "kafka:9092",
         topics: list = None,
         group_id: str = "fintech-workers",
         message_handler: Optional[Callable] = None,

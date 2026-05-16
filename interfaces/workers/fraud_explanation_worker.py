@@ -18,7 +18,7 @@ class FraudExplanationWorker:
     def __init__(
         self,
         mistral_api_key: str,
-        bootstrap_servers: str = "localhost:9092",
+        bootstrap_servers: str = "kafka:9092",
     ):
         self.mistral_api_key = mistral_api_key
         self.bootstrap_servers = bootstrap_servers
