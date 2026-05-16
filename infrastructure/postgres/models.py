@@ -36,8 +36,8 @@ class TransactionModel(Base):
     fraud_reason = Column(String(500), nullable=True)
     fraud_explanation = Column(String(1000), nullable=True)
     
-    # Métadonnées
-    metadata = Column(JSON, nullable=True, default={})
+    # Métadonnées (metadata_ car metadata est réservé)
+    metadata_ = Column(JSON, nullable=True, default={})
     
     # Audit
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
@@ -72,7 +72,7 @@ class AccountModel(Base):
     last_risk_update = Column(DateTime, default=datetime.utcnow)
     
     # Métadonnées
-    metadata = Column(JSON, nullable=True, default={})
+    metadata_ = Column(JSON, nullable=True, default={})
     
     # Audit
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -100,7 +100,7 @@ class EventModel(Base):
     
     # Event Data
     data = Column(JSON, nullable=False)
-    metadata = Column(JSON, nullable=True, default={})
+    metadata_ = Column(JSON, nullable=True, default={})
     
     # Audit
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
@@ -127,7 +127,7 @@ class AuditLogModel(Base):
     new_values = Column(JSON, nullable=True)
     
     # Metadata
-    metadata = Column(JSON, nullable=True)
+    metadata_ = Column(JSON, nullable=True)
     
     # Timestamp
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
