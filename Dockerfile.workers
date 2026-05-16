@@ -1,0 +1,13 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Copie les requirements
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# Copie le code
+COPY . .
+
+# Lance les workers
+CMD ["python", "-m", "interfaces.workers.main"]

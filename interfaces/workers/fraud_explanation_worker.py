@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 from typing import Optional
 from aiokafka import AIOKafkaConsumer
 import httpx
@@ -11,16 +12,20 @@ logger = logging.getLogger(__name__)
 class FraudExplanationWorker:
     """
     Worker pour générer les explications de fraude via Mistral
-    
+
     Consomme les événements FraudDetected et appelle Mistral
     """
-    
+
     def __init__(
         self,
         mistral_api_key: str,
-        bootstrap_servers: str = "kafka:9092",
+        bootstrap_servers: str = None,
     ):
         self.mistral_api_key = mistral_api_key
+        # Lire depuis env ou utiliser défaut
+        if bootstrap_servers is None:
+            bootstrap_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
+
         self.bootstrap_servers = bootstrap_servers
         self.consumer = None
         self.running = False

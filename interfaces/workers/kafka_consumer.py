@@ -1,27 +1,34 @@
 import asyncio
 import json
 import logging
+import os
 from typing import Callable, Optional
 from aiokafka import AIOKafkaConsumer
 from domain.common import DomainEvent
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
+
 
 class KafkaConsumerWorker:
     """
     Worker base pour consommer les messages Kafka
-    
+
     Gère la connexion, la consommation, et le traitement des messages
     """
-    
+
     def __init__(
         self,
-        bootstrap_servers: str = "kafka:9092",
+        bootstrap_servers: str = None,
         topics: list = None,
         group_id: str = "fintech-workers",
         message_handler: Optional[Callable] = None,
     ):
+        # Lire depuis env ou utiliser défaut
+        if bootstrap_servers is None:
+            bootstrap_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
+        
         self.bootstrap_servers = bootstrap_servers
         self.topics = topics or []
         self.group_id = group_id
