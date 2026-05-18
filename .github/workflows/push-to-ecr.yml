@@ -1,0 +1,55 @@
+name: Push to ECR
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+
+env:
+  AWS_REGION: eu-west-1
+
+jobs:
+  push-ecr:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+    
+    - name: Build and push API image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: |
+          ${{ steps.login-ecr.outputs.registry }}/fintech-fraud-detection-api:latest
+          ${{ steps.login-ecr.outputs.registry }}/fintech-fraud-detection-api:${{ github.sha }}
+          ${{ steps.login-ecr.outputs.registry }}/fintech-fraud-detection-api:${{ github.ref_name }}
+    
+    - name: Build and push Workers image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./Dockerfile.workers
+        push: true
+        tags: |
+          ${{ steps.login-ecr.outputs.registry }}/fintech-fraud-detection-workers:latest
+          ${{ steps.login-ecr.outputs.registry }}/fintech-fraud-detection-workers:${{ github.sha }}
+          ${{ steps.login-ecr.outputs.registry }}/fintech-fraud-detection-workers:${{ github.ref_name }}
+    
+    - name: Image digest
+      run: echo ${{ steps.docker_build.outputs.digest }}

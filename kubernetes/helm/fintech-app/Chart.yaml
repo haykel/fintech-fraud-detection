@@ -1,0 +1,13 @@
+apiVersion: v2
+name: fintech-fraud-detection
+description: FinTech Fraud Detection Platform Helm Chart
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - fintech
+  - fraud-detection
+  - kubernetes
+maintainers:
+  - name: Haykel
+    email: haykel@fintech.local

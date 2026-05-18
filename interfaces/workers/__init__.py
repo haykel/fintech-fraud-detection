@@ -6,6 +6,7 @@ from .kafka_consumer import (
 )
 
 from .fraud_explanation_worker import FraudExplanationWorker
+from .fraud_analysis_worker import FraudAnalysisWorker
 
 __all__ = [
     "KafkaConsumerWorker",
@@ -13,4 +14,5 @@ __all__ = [
     "FraudDetectionConsumer",
     "SearchIndexingConsumer",
     "FraudExplanationWorker",
+    "FraudAnalysisWorker",
 ]

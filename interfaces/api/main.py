@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
 
-from interfaces.api.routes import transactions, accounts
+from interfaces.api.routes import accounts, explanations, transactions
 
 # ==================== Logging ====================
 
@@ -49,6 +49,7 @@ app.add_middleware(
 
 app.include_router(transactions.router, prefix="/api", tags=["transactions"])
 app.include_router(accounts.router, prefix="/api", tags=["accounts"])
+app.include_router(explanations.router, prefix="/api", tags=["explanations"])
 
 # ==================== Health Check ====================
 

@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fintech-app.fullname" . }}-workers
+  labels:
+    {{- include "fintech-app.labels" . | nindent 4 }}
+    component: workers
+spec:
+  {{- if not .Values.workers.autoscaling.enabled }}
+  replicas: {{ .Values.workers.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "fintech-app.selectorLabels" . | nindent 6 }}
+      component: workers
+  template:
+    metadata:
+      labels:
+        {{- include "fintech-app.selectorLabels" . | nindent 8 }}
+        component: workers
+    spec:
+      serviceAccountName: {{ include "fintech-app.serviceAccountName" . }}
+      containers:
+      - name: workers
+        image: "{{ .Values.global.imageRegistry }}/{{ .Values.workers.image.repository }}:{{ .Values.workers.image.tag }}"
+        imagePullPolicy: {{ .Values.workers.image.pullPolicy }}
+        env:
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "fintech-app.fullname" . }}
+              key: ENVIRONMENT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "fintech-app.fullname" . }}
+              key: LOG_LEVEL
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "fintech-app.fullname" . }}
+              key: DATABASE_URL
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "fintech-app.fullname" . }}
+              key: REDIS_URL
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "fintech-app.fullname" . }}
+              key: KAFKA_BOOTSTRAP_SERVERS
+        - name: MISTRAL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "fintech-app.fullname" . }}
+              key: MISTRAL_API_KEY
+        resources:
+          {{- toYaml .Values.workers.resources | nindent 12 }}

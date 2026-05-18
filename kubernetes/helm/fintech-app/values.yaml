@@ -1,0 +1,127 @@
+# Global config
+global:
+  environment: dev
+  domain: fintech-dev.example.com
+  imageRegistry: AWS_ACCOUNT_ID.dkr.ecr.eu-west-1.amazonaws.com
+
+# API Deployment
+api:
+  enabled: true
+  replicaCount: 3
+  
+  image:
+    repository: fintech-fraud-detection-api
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  
+  healthCheck:
+    path: /health
+    initialDelaySeconds: 30
+    periodSeconds: 10
+
+# Workers Deployment
+workers:
+  enabled: true
+  replicaCount: 2
+  
+  image:
+    repository: fintech-fraud-detection-workers
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 75
+
+# Database config
+database:
+  host: rds-endpoint.aws.com
+  port: 5432
+  name: fintech_db
+  user: postgres
+  # password from secret
+
+# Redis config
+redis:
+  host: elasticache-endpoint.aws.com
+  port: 6379
+  # auth_token from secret
+
+# Kafka config
+kafka:
+  brokers: kafka:9092
+  topics:
+    transactions: "transaction.TransactionCreatedEvent"
+    fraud: "transaction.FraudDetectedEvent"
+
+# Ingress
+ingress:
+  enabled: true
+  className: aws-load-balancer-controller
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+  hosts:
+    - host: fintech-dev.example.com
+      paths:
+        - path: /api
+          pathType: Prefix
+
+# ConfigMap
+configMap:
+  ENVIRONMENT: dev
+  LOG_LEVEL: INFO
+  API_PORT: "8000"
+
+# Secrets (from AWS Secrets Manager)
+secrets:
+  MISTRAL_API_KEY: ""
+  DB_PASSWORD: ""
+  REDIS_AUTH_TOKEN: ""
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Network Policy
+networkPolicy:
+  enabled: false
+
+# RBAC
+rbac:
+  create: true
+
+# Service Account
+serviceAccount:
+  create: true
+  name: fintech-app

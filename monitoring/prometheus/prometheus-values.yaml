@@ -1,0 +1,104 @@
+# Prometheus Helm Chart Values for FinTech Fraud Detection
+
+prometheus:
+  prometheusSpec:
+    # Resources
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+    
+    # Retention
+    retention: 30d
+    retentionSize: "10GB"
+    
+    # Service Monitor Selector
+    serviceMonitorSelector:
+      matchLabels:
+        prometheus: "true"
+    
+    # Pod Monitor Selector
+    podMonitorSelector:
+      matchLabels:
+        prometheus: "true"
+    
+    # Storage
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: [ "ReadWriteOnce" ]
+          resources:
+            requests:
+              storage: 50Gi
+    
+    # Remote Write (optional: send to CloudWatch)
+    remoteWrite:
+      - url: http://cloudwatch-exporter:9106/metrics
+        writeRelabelConfigs:
+          - sourceLabels: [__name__]
+            regex: 'container_.*|node_.*'
+            action: keep
+
+# Alert Manager
+alertmanager:
+  enabled: true
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 12h
+      receiver: 'slack'
+    receivers:
+      - name: 'slack'
+        slack_configs:
+          - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+            channel: '#alerts'
+            title: 'Alert: {{ .GroupLabels.alertname }}'
+            text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+
+# Grafana
+grafana:
+  enabled: true
+  adminPassword: 'admin'
+  persistence:
+    enabled: true
+    size: 10Gi
+  
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://prometheus-operated:9090
+          isDefault: true
+        - name: CloudWatch
+          type: cloudwatch
+          jsonData:
+            authType: arn
+            defaultRegion: eu-west-1
+
+# Node Exporter
+nodeExporter:
+  enabled: true
+
+# Kube State Metrics
+kubeStateMetrics:
+  enabled: true
+
+# Prometheus Operator
+prometheusOperator:
+  enabled: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi

@@ -1,0 +1,348 @@
+# CloudWatch Monitoring Stack for FinTech Fraud Detection
+
+---
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    name: monitoring
+
+---
+# ServiceMonitor for API
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: fintech-api
+  namespace: monitoring
+  labels:
+    prometheus: "true"
+spec:
+  selector:
+    matchLabels:
+      app: fintech-app
+      component: api
+  endpoints:
+  - port: http
+    interval: 30s
+    path: /metrics
+
+---
+# ServiceMonitor for Workers
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: fintech-workers
+  namespace: monitoring
+  labels:
+    prometheus: "true"
+spec:
+  selector:
+    matchLabels:
+      app: fintech-app
+      component: workers
+  endpoints:
+  - port: http
+    interval: 30s
+    path: /metrics
+
+---
+# PodMonitor for Kubernetes metrics
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: fintech-pod-monitor
+  namespace: monitoring
+  labels:
+    prometheus: "true"
+spec:
+  selector:
+    matchLabels:
+      app: fintech-app
+  podMetricsEndpoints:
+  - port: http
+    interval: 30s
+    path: /metrics
+
+---
+# CloudWatch LogGroup for API
+apiVersion: logs.aws.amazon.com/v1
+kind: LogGroup
+metadata:
+  name: /aws/eks/fintech-fraud-detection/api
+  namespace: monitoring
+spec:
+  retentionInDays: 7
+
+---
+# CloudWatch LogGroup for Workers
+apiVersion: logs.aws.amazon.com/v1
+kind: LogGroup
+metadata:
+  name: /aws/eks/fintech-fraud-detection/workers
+  namespace: monitoring
+spec:
+  retentionInDays: 7
+
+---
+# CloudWatch Metric Alarm - High Error Rate
+apiVersion: cloudwatch.aws.amazon.com/v1
+kind: MetricAlarm
+metadata:
+  name: fintech-high-error-rate
+  namespace: monitoring
+spec:
+  alarmName: FinTech-HighErrorRate
+  metricName: ErrorRate
+  namespace: FinTech
+  statistic: Average
+  period: 300
+  evaluationPeriods: 2
+  threshold: 5
+  comparisonOperator: GreaterThanThreshold
+  alarmActions:
+    - !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:FinTechAlerts"
+
+---
+# CloudWatch Metric Alarm - High Response Time
+apiVersion: cloudwatch.aws.amazon.com/v1
+kind: MetricAlarm
+metadata:
+  name: fintech-high-response-time
+  namespace: monitoring
+spec:
+  alarmName: FinTech-HighResponseTime
+  metricName: ResponseTime
+  namespace: FinTech
+  statistic: Average
+  period: 300
+  evaluationPeriods: 2
+  threshold: 1000
+  comparisonOperator: GreaterThanThreshold
+  alarmActions:
+    - !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:FinTechAlerts"
+
+---
+# CloudWatch Metric Alarm - High Memory Usage
+apiVersion: cloudwatch.aws.amazon.com/v1
+kind: MetricAlarm
+metadata:
+  name: fintech-high-memory
+  namespace: monitoring
+spec:
+  alarmName: FinTech-HighMemoryUsage
+  metricName: MemoryUtilization
+  namespace: FinTech
+  statistic: Average
+  period: 300
+  evaluationPeriods: 2
+  threshold: 90
+  comparisonOperator: GreaterThanThreshold
+  alarmActions:
+    - !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:FinTechAlerts"
+
+---
+# CloudWatch Metric Alarm - Database Connection Pool
+apiVersion: cloudwatch.aws.amazon.com/v1
+kind: MetricAlarm
+metadata:
+  name: fintech-db-connections
+  namespace: monitoring
+spec:
+  alarmName: FinTech-DatabaseConnectionPoolExhausted
+  metricName: DatabaseConnections
+  namespace: FinTech
+  statistic: Average
+  period: 300
+  evaluationPeriods: 2
+  threshold: 90
+  comparisonOperator: GreaterThanThreshold
+  alarmActions:
+    - !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:FinTechAlerts"
+
+---
+# CloudWatch Dashboard
+apiVersion: cloudwatch.aws.amazon.com/v1
+kind: Dashboard
+metadata:
+  name: fintech-fraud-detection-dashboard
+  namespace: monitoring
+spec:
+  dashboardName: FinTech-FraudDetection-Dashboard
+  dashboardBody: |
+    {
+      "widgets": [
+        {
+          "type": "metric",
+          "properties": {
+            "metrics": [
+              ["FinTech", "RequestsPerSecond"],
+              [".", "ErrorRate"],
+              [".", "ResponseTime"],
+              [".", "ActiveConnections"]
+            ],
+            "period": 300,
+            "stat": "Average",
+            "region": "eu-west-1",
+            "title": "API Metrics"
+          }
+        },
+        {
+          "type": "metric",
+          "properties": {
+            "metrics": [
+              ["FinTech", "FraudDetectionRate"],
+              [".", "FraudDetectionAccuracy"],
+              [".", "ProcessingTime"]
+            ],
+            "period": 300,
+            "stat": "Average",
+            "region": "eu-west-1",
+            "title": "Fraud Detection Metrics"
+          }
+        },
+        {
+          "type": "metric",
+          "properties": {
+            "metrics": [
+              ["AWS/RDS", "CPUUtilization", {"stat": "Average"}],
+              [".", "DatabaseConnections"],
+              [".", "DiskQueueDepth"]
+            ],
+            "period": 300,
+            "stat": "Average",
+            "region": "eu-west-1",
+            "title": "Database Metrics"
+          }
+        },
+        {
+          "type": "metric",
+          "properties": {
+            "metrics": [
+              ["AWS/ElastiCache", "CPUUtilization"],
+              [".", "Evictions"],
+              [".", "NetworkBytesIn"]
+            ],
+            "period": 300,
+            "stat": "Average",
+            "region": "eu-west-1",
+            "title": "Redis Cache Metrics"
+          }
+        },
+        {
+          "type": "metric",
+          "properties": {
+            "metrics": [
+              ["AWS/EKS", "cluster_node_count"],
+              [".", "cluster_cpu_usage"],
+              [".", "cluster_memory_usage"]
+            ],
+            "period": 300,
+            "stat": "Average",
+            "region": "eu-west-1",
+            "title": "Kubernetes Cluster Metrics"
+          }
+        },
+        {
+          "type": "log",
+          "properties": {
+            "query": "fields @timestamp, @message | filter @message like /ERROR/ | stats count() by bin(5m)",
+            "region": "eu-west-1",
+            "title": "Error Logs (last 5 min)"
+          }
+        }
+      ]
+    }
+
+---
+# CloudWatch Log Insights Query - API Errors
+apiVersion: logs.insights.aws.amazon.com/v1
+kind: Query
+metadata:
+  name: api-error-analysis
+  namespace: monitoring
+spec:
+  logGroupName: /aws/eks/fintech-fraud-detection/api
+  queryString: |
+    fields @timestamp, @message, @duration
+    | filter @message like /ERROR/
+    | stats count() as error_count, avg(@duration) as avg_duration by @message
+    | sort error_count desc
+
+---
+# CloudWatch Log Insights Query - Fraud Detection Performance
+apiVersion: logs.insights.aws.amazon.com/v1
+kind: Query
+metadata:
+  name: fraud-detection-performance
+  namespace: monitoring
+spec:
+  logGroupName: /aws/eks/fintech-fraud-detection/workers
+  queryString: |
+    fields @timestamp, processing_time, risk_score, is_fraud
+    | stats count() as total_processed, 
+            sum(is_fraud) as fraud_count,
+            avg(processing_time) as avg_processing_time,
+            pct(processing_time, 95) as p95_processing_time
+    | stats fraud_rate = (fraud_count / total_processed) * 100
+
+---
+# SNS Topic for Alerts
+apiVersion: sns.aws.amazon.com/v1
+kind: Topic
+metadata:
+  name: fintech-alerts
+  namespace: monitoring
+spec:
+  topicName: FinTechAlerts
+  subscriptions:
+    - protocol: email
+      endpoint: alerts@fintech.local
+    - protocol: sms
+      endpoint: "+33612345678"
+
+---
+# EventBridge Rule - Trigger on Alarms
+apiVersion: events.aws.amazon.com/v1
+kind: Rule
+metadata:
+  name: fintech-alarm-rule
+  namespace: monitoring
+spec:
+  name: FinTechAlarmRule
+  eventPattern: |
+    {
+      "source": ["aws.cloudwatch"],
+      "detail-type": ["CloudWatch Alarm State Change"],
+      "detail": {
+        "alarmName": [{"prefix": "FinTech"}]
+      }
+    }
+  targets:
+    - arn: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:FinTechAlerts"
+      id: "SendToSNS"
+    - arn: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:AlarmHandler"
+      id: "TriggerLambda"
+
+---
+# X-Ray Tracing Configuration
+apiVersion: xray.aws.amazon.com/v1
+kind: TracingConfig
+metadata:
+  name: fintech-xray
+  namespace: monitoring
+spec:
+  samplingRuleUpdates:
+    - ruleName: "FinTech-API"
+      priority: 1000
+      version: 1
+      reservoirSize: 10
+      fixedRate: 0.1
+      urlPath: "/api/*"
+      host: "*"
+      httpMethod: "*"
+      resourceArn: "*"
+      serviceType: "*"
+      serviceName: "fintech-api"
+      attributes: {}

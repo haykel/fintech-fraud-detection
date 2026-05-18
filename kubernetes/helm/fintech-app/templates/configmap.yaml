@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "fintech-app.fullname" . }}
+  labels:
+    {{- include "fintech-app.labels" . | nindent 4 }}
+data:
+  ENVIRONMENT: {{ .Values.configMap.ENVIRONMENT | quote }}
+  LOG_LEVEL: {{ .Values.configMap.LOG_LEVEL | quote }}
+  API_PORT: {{ .Values.configMap.API_PORT | quote }}
+  KAFKA_BOOTSTRAP_SERVERS: {{ .Values.kafka.brokers | quote }}

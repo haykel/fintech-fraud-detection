@@ -52,3 +52,39 @@ logs/
 .Spotlight-V100
 .Trashes
 ehthumbs.db
+
+# Terraform (Phase 6)
+terraform/**/.terraform/
+terraform/**/.terraform.lock.hcl
+terraform/**/*.tfstate
+terraform/**/*.tfstate.*
+terraform/**/crash.log
+terraform/**/override.tf
+terraform/**/override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Kubernetes
+kubeconfig
+kubeconfig.yaml
+*.kubeconfig
+
+# Helm
+charts/
+Chart.lock
+
+# AWS credentials
+.aws/credentials
+.aws/config
+
+# Monitoring
+prometheus/data/
+grafana/data/
+
+# CI/CD
+.github/workflows/*.local
+
+# Misc
+*.backup
+*.bak
+.terraform.tfvars

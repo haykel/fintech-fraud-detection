@@ -1,0 +1,67 @@
+# Staging values - entre dev et prod
+
+global:
+  environment: staging
+  domain: fintech-staging.example.com
+  imageRegistry: AWS_ACCOUNT_ID.dkr.ecr.eu-west-1.amazonaws.com
+
+api:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 150m
+      memory: 192Mi
+    limits:
+      cpu: 750m
+      memory: 768Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 65
+
+workers:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 75m
+      memory: 96Mi
+    limits:
+      cpu: 400m
+      memory: 384Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+
+configMap:
+  ENVIRONMENT: staging
+  LOG_LEVEL: DEBUG
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+
+monitoring:
+  enabled: true
+
+backup:
+  enabled: true
+  schedule: "0 3 * * *"
+  retention: 7
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 50
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - fintech-fraud-detection
+          topologyKey: kubernetes.io/hostname

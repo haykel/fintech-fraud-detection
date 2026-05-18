@@ -1,0 +1,225 @@
+# Production values - overrides values.yaml
+# Deploy with: helm install fintech-app . -f values.yaml -f values-prod.yaml
+
+# Global config
+global:
+  environment: prod
+  domain: fintech-api.example.com
+  imageRegistry: AWS_ACCOUNT_ID.dkr.ecr.eu-west-1.amazonaws.com
+
+# API Deployment - Production Scale
+api:
+  enabled: true
+  replicaCount: 5  # More replicas in prod
+  
+  image:
+    repository: fintech-fraud-detection-api
+    tag: v1.0.0  # Use version tags in prod, not latest
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+  
+  resources:
+    requests:
+      cpu: 250m      # More CPU in prod
+      memory: 256Mi  # More memory in prod
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 20    # More aggressive scaling in prod
+    targetCPUUtilizationPercentage: 60  # Lower threshold = more responsive
+  
+  healthCheck:
+    path: /health
+    initialDelaySeconds: 30
+    periodSeconds: 10
+
+# Workers Deployment - Production Scale
+workers:
+  enabled: true
+  replicaCount: 4  # More workers in prod
+  
+  image:
+    repository: fintech-fraud-detection-workers
+    tag: v1.0.0
+    pullPolicy: IfNotPresent
+  
+  resources:
+    requests:
+      cpu: 100m       # More CPU in prod
+      memory: 128Mi   # More memory in prod
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 4
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 65
+
+# Database config - Production RDS
+database:
+  host: fintech-fraud-detection-postgres.c1234567890.eu-west-1.rds.amazonaws.com
+  port: 5432
+  name: fintech_db
+  user: postgres
+  # password from AWS Secrets Manager
+
+# Redis config - Production ElastiCache
+redis:
+  host: fintech-fraud-detection-redis.abcdef.ng.0001.euw1.cache.amazonaws.com
+  port: 6379
+  # auth_token from AWS Secrets Manager
+
+# Kafka config - Production Kafka
+kafka:
+  brokers: kafka-prod-1:9092,kafka-prod-2:9092,kafka-prod-3:9092
+  topics:
+    transactions: "transaction.TransactionCreatedEvent"
+    fraud: "transaction.FraudDetectedEvent"
+
+# Ingress - Production with ALB
+ingress:
+  enabled: true
+  className: alb
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-west-1:ACCOUNT_ID:certificate/xxxxx
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+  hosts:
+    - host: api.fintech-prod.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+# ConfigMap - Production environment
+configMap:
+  ENVIRONMENT: prod
+  LOG_LEVEL: WARNING      # Less verbose logging in prod
+  API_PORT: "8000"
+  WORKERS_CONCURRENCY: "10"
+  MISTRAL_MODEL: "mistral-medium"  # Better model in prod
+
+# Secrets from AWS Secrets Manager
+secrets:
+  MISTRAL_API_KEY: ""     # Will be injected from AWS Secrets Manager
+  DB_PASSWORD: ""
+  REDIS_AUTH_TOKEN: ""
+
+# Pod Disruption Budget - Production
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2  # Always keep 2 pods running
+
+# Network Policy - Production security
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+
+# RBAC - Production
+rbac:
+  create: true
+
+# Service Account
+serviceAccount:
+  create: true
+  name: fintech-app
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/fintech-app-irsa-role
+
+# Resource Quotas
+resourceQuota:
+  enabled: true
+  requests:
+    cpu: 5000m
+    memory: 5Gi
+  limits:
+    cpu: 10000m
+    memory: 10Gi
+
+# Pod Security Policy
+podSecurityPolicy:
+  enabled: true
+  level: restricted
+
+# Monitoring & Observability
+monitoring:
+  enabled: true
+  prometheus:
+    enabled: true
+    scrapeInterval: 30s
+  grafana:
+    enabled: true
+    dashboards: true
+
+# Backup & Disaster Recovery
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # 2 AM daily
+  retention: 30          # Keep 30 days
+
+# SSL/TLS
+ssl:
+  enabled: true
+  issuer: letsencrypt-prod
+  certDomain: api.fintech-prod.com
+
+# Rate Limiting
+rateLimit:
+  enabled: true
+  requestsPerSecond: 1000
+  burstSize: 5000
+
+# Request Timeout
+timeout:
+  connectionTimeout: 30s
+  readTimeout: 30s
+  writeTimeout: 30s
+
+# Affinity & Node Selection (spread across nodes)
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - fintech-fraud-detection
+          topologyKey: kubernetes.io/hostname
+
+# Tolerations (for production node pools)
+tolerations:
+  - key: workload
+    operator: Equal
+    value: production
+    effect: NoSchedule
+
+# Priority Classes
+priorityClassName: high-priority
+
+# Replicas summary
+replicas:
+  api: 5
+  workers: 4
+  total: 9

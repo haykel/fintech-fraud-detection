@@ -8,6 +8,7 @@ from interfaces.workers import (
     FraudDetectionConsumer,
     SearchIndexingConsumer,
     FraudExplanationWorker,
+    FraudAnalysisWorker,
 )
 
 logging.basicConfig(
@@ -26,6 +27,12 @@ async def run_workers():
         SearchIndexingConsumer(),
         # FraudExplanationWorker(mistral_api_key=os.getenv("MISTRAL_API_KEY")),
     ]
+
+    if os.getenv("MISTRAL_API_KEY"):
+        workers.append(FraudAnalysisWorker())
+        logger.info("FraudAnalysisWorker enabled (MISTRAL_API_KEY found)")
+    else:
+        logger.warning("MISTRAL_API_KEY not set — FraudAnalysisWorker disabled")
     
     logger.info(f"Starting {len(workers)} workers...")
     

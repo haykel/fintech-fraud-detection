@@ -1,0 +1,259 @@
+# Grafana Dashboard ConfigMap for FinTech Fraud Detection
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: monitoring
+data:
+  api-metrics-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "API Metrics - FinTech Fraud Detection",
+        "panels": [
+          {
+            "title": "Requests Per Second",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total[1m])"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Response Time (p95)",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Error Rate",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{status=~\"5..\"}[5m])"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Active Connections",
+            "targets": [
+              {
+                "expr": "http_connections_active"
+              }
+            ],
+            "type": "stat"
+          },
+          {
+            "title": "CPU Usage",
+            "targets": [
+              {
+                "expr": "rate(container_cpu_usage_seconds_total[5m]) * 100"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Memory Usage",
+            "targets": [
+              {
+                "expr": "container_memory_usage_bytes / 1024 / 1024"
+              }
+            ],
+            "type": "graph"
+          }
+        ]
+      }
+    }
+  
+  workers-metrics-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Workers Metrics - FinTech Fraud Detection",
+        "panels": [
+          {
+            "title": "Kafka Messages Processed",
+            "targets": [
+              {
+                "expr": "rate(kafka_messages_processed_total[5m])"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Processing Time (p95)",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(message_processing_duration_seconds_bucket[5m]))"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Failed Messages",
+            "targets": [
+              {
+                "expr": "rate(kafka_messages_failed_total[5m])"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Consumer Lag",
+            "targets": [
+              {
+                "expr": "kafka_consumer_lag"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Worker CPU",
+            "targets": [
+              {
+                "expr": "rate(container_cpu_usage_seconds_total{pod=~\"fintech-app-workers.*\"}[5m]) * 100"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Worker Memory",
+            "targets": [
+              {
+                "expr": "container_memory_usage_bytes{pod=~\"fintech-app-workers.*\"} / 1024 / 1024"
+              }
+            ],
+            "type": "graph"
+          }
+        ]
+      }
+    }
+  
+  fraud-detection-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Fraud Detection Metrics",
+        "panels": [
+          {
+            "title": "Total Transactions Processed",
+            "targets": [
+              {
+                "expr": "fraud_detection_transactions_total"
+              }
+            ],
+            "type": "stat"
+          },
+          {
+            "title": "Fraud Detected Rate",
+            "targets": [
+              {
+                "expr": "rate(fraud_detection_fraud_detected_total[5m])"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Fraud Detection Accuracy",
+            "targets": [
+              {
+                "expr": "fraud_detection_accuracy"
+              }
+            ],
+            "type": "gauge"
+          },
+          {
+            "title": "Detection Time (p95)",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(fraud_detection_duration_seconds_bucket[5m]))"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Risk Score Distribution",
+            "targets": [
+              {
+                "expr": "histogram_quantile([0.25, 0.5, 0.75, 0.95], rate(fraud_detection_risk_score_bucket[5m]))"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Top Risk Countries",
+            "targets": [
+              {
+                "expr": "topk(10, sum by (country) (fraud_detection_by_country))"
+              }
+            ],
+            "type": "table"
+          }
+        ]
+      }
+    }
+  
+  infrastructure-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Infrastructure Metrics",
+        "panels": [
+          {
+            "title": "Node CPU Usage",
+            "targets": [
+              {
+                "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Node Memory Usage",
+            "targets": [
+              {
+                "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Disk Usage",
+            "targets": [
+              {
+                "expr": "(1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Network In",
+            "targets": [
+              {
+                "expr": "rate(node_network_receive_bytes_total[5m])"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Network Out",
+            "targets": [
+              {
+                "expr": "rate(node_network_transmit_bytes_total[5m])"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Kubernetes Pod Count",
+            "targets": [
+              {
+                "expr": "count(kube_pod_info)"
+              }
+            ],
+            "type": "stat"
+          }
+        ]
+      }
+    }
