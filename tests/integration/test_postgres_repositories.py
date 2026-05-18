@@ -1,43 +1,50 @@
 import pytest
-import asyncio
+import pytest_asyncio
 from decimal import Decimal
 from domain.transaction import Transaction, Money
 from domain.account import Account
+from infrastructure.postgres.models import Base
 from infrastructure.postgres.repositories import (
     PostgresTransactionRepository,
     PostgresAccountRepository,
-    init_db,
+    engine,
 )
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def setup_db():
-    """Setup base de données pour les tests"""
-    await init_db()
+    """Setup base de données pour les tests.
+
+    Recrée le schéma à chaque test pour garantir l'isolation. Utilise l'engine
+    module-level partagé via le fixture `event_loop` session-scoped défini
+    dans le conftest racine.
+    """
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
     yield
-    # Cleanup si besoin
 
 
 @pytest.mark.asyncio
 async def test_save_and_find_transaction(setup_db):
     """Test sauvegarde et récupération d'une transaction"""
+    # Une transaction nécessite un account_id existant (FK) — on persiste
+    # d'abord le compte associé.
+    account_repo = PostgresAccountRepository()
+    account = Account(id="acc-123", holder_name="Owner", email="owner@example.com")
+    await account_repo.save(account)
+
     repo = PostgresTransactionRepository()
-    
-    # Créer une transaction
     amount = Money(Decimal("150.50"), "EUR")
     txn = Transaction(
         account_id="acc-123",
         amount=amount,
         merchant_id="merchant-456",
-        merchant_name="Test Store"
+        merchant_name="Test Store",
     )
-    
-    # Sauvegarder
     await repo.save(txn)
-    
-    # Récupérer
+
     found = await repo.find_by_id(txn.id)
-    
     assert found is not None
     assert found.id == txn.id
     assert found.account_id == "acc-123"
@@ -48,19 +55,10 @@ async def test_save_and_find_transaction(setup_db):
 async def test_save_and_find_account(setup_db):
     """Test sauvegarde et récupération d'un compte"""
     repo = PostgresAccountRepository()
-    
-    # Créer un compte
-    account = Account(
-        holder_name="John Doe",
-        email="john@example.com"
-    )
-    
-    # Sauvegarder
+    account = Account(holder_name="John Doe", email="john@example.com")
     await repo.save(account)
-    
-    # Récupérer par ID
+
     found = await repo.find_by_id(account.id)
-    
     assert found is not None
     assert found.id == account.id
     assert found.holder_name == "John Doe"
@@ -71,16 +69,9 @@ async def test_save_and_find_account(setup_db):
 async def test_find_account_by_email(setup_db):
     """Test recherche de compte par email"""
     repo = PostgresAccountRepository()
-    
-    account = Account(
-        holder_name="Jane Doe",
-        email="jane@example.com"
-    )
-    
+    account = Account(holder_name="Jane Doe", email="jane@example.com")
     await repo.save(account)
-    
-    # Rechercher par email
+
     found = await repo.find_by_email("jane@example.com")
-    
     assert found is not None
     assert found.email == "jane@example.com"
