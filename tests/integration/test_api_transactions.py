@@ -43,7 +43,7 @@ def test_root_endpoint(client):
     assert "docs_url" in response.json()
 
 
-@requires_kafka
+@requires_kafka  # Endpoint resolves a Depends() that constructs KafkaEventPublisher
 @pytest.mark.asyncio
 async def test_process_transaction_success(client):
     """Test processing a valid transaction"""
@@ -64,6 +64,7 @@ async def test_process_transaction_success(client):
     assert data["transaction_id"] is not None
 
 
+@requires_kafka  # Same path as the success test — endpoint still constructs the Kafka publisher
 @pytest.mark.asyncio
 async def test_process_transaction_validation_error(client):
     """Test validation error"""
