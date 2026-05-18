@@ -58,15 +58,15 @@ variable "redis_auth_token" {
   default     = "RedisToken123!@#456"  # À changer en prod
 }
 variable "kubernetes_version" {
-  description = "Kubernetes version"
+  description = "Kubernetes version for EKS cluster"
   type        = string
-  default     = "1.28"
+  default     = "1.26"
 }
 
 variable "eks_instance_type" {
   description = "EKS node instance type"
   type        = string
-  default     = "t3.medium"
+  default     = "t3.small"
 }
 
 variable "eks_desired_size" {

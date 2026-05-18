@@ -30,11 +30,10 @@ resource "aws_db_instance" "main" {
   multi_az            = var.environment == "prod" ? true : false
   publicly_accessible = false
   skip_final_snapshot = true
-  final_snapshot_identifier = var.environment == "prod" ? "${var.project_name}-final-${formatdate("YYYY-MM-DD-hhmm", timestamp())}" : null
 
-  backup_retention_period = var.environment == "prod" ? 30 : 7
-  backup_window          = "03:00-04:00"
-  maintenance_window     = "sun:04:00-sun:05:00"
+  backup_retention_period = 7
+  backup_window           = "03:00-04:00"
+  maintenance_window      = "sun:04:00-sun:05:00"
 
   enabled_cloudwatch_logs_exports = ["postgresql"]
   
