@@ -75,29 +75,23 @@ class OpenSearchAdapter:
             
             # Exécuter
             index_name = f"transactions-{datetime.now().strftime('%Y.%m.%d')}"
-            
-            try:
-                response = self.client.search(
-                    body=search_body,
-                    index=index_name
-                )
-            except:
-                # Si l'index n'existe pas, retourner vide
-                return {"transactions": [], "total": 0}
-            
+
+            response = self.client.search(body=search_body, index=index_name)
+
             # Parser les résultats
             hits = response.get("hits", {})
             total = hits.get("total", {}).get("value", 0)
             transactions = [hit["_source"] for hit in hits.get("hits", [])]
-            
+
             return {
                 "transactions": transactions,
                 "total": total,
             }
-        
+
         except Exception as e:
-            logger.error(f"Error searching transactions: {e}")
-            return {"transactions": [], "total": 0}
+            # On laisse remonter pour que l'handler bascule sur le fallback Postgres.
+            logger.warning(f"OpenSearch lookup failed, caller should fall back to DB: {e}")
+            raise
     
     async def index_transaction(self, transaction_data: Dict[str, Any]) -> bool:
         """Indexe une transaction"""
